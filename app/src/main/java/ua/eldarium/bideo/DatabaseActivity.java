@@ -15,17 +15,11 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ImageView;
 import android.widget.SimpleCursorAdapter;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class DatabaseActivity extends ListActivity {
@@ -34,11 +28,11 @@ public class DatabaseActivity extends ListActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Bitmap error_sign = BitmapFactory.decodeResource(getResources(), R.drawable.error_sign);
+        Bitmap errorSign = BitmapFactory.decodeResource(getResources(), R.drawable.error_sign);
 
         dbWorker = new DatabaseWorker(this);
         dbWorker.open();
-        dbWorker.addRec(new VideoInfo("No Videos Available", error_sign, null));
+        dbWorker.addRecord(new VideoInfo("No Videos Available", errorSign, null));
 
         String[] from = new String[]{DatabaseWorker.VIDEO_NAME_COLUMN, DatabaseWorker.THUMB_COLUMN};
         int[] to = new int[]{R.id.video_name, R.id.video_thumb};
@@ -62,7 +56,7 @@ public class DatabaseActivity extends ListActivity {
                 Bitmap thumb = ThumbnailUtils.createVideoThumbnail(path, MediaStore.Images
                         .Thumbnails.MINI_KIND);
                 VideoInfo info = new VideoInfo(name, thumb, path);
-                dbWorker.addRec(info);
+                dbWorker.addRecord(info);
                 scAdapter.notifyDataSetChanged();
             }
         });
@@ -106,7 +100,7 @@ public class DatabaseActivity extends ListActivity {
                     ad.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
-                            dbWorker.delRec(position);
+                            dbWorker.delRecord(position);
                             scAdapter.notifyDataSetChanged();
                         }
                     });
@@ -148,42 +142,6 @@ public class DatabaseActivity extends ListActivity {
     protected void onDestroy() {
         super.onDestroy();
         dbWorker.close();
-    }
-
-    private VideoInfo getModel(int position) {
-        return (((VideoInfoAdapter) getListAdapter()).getItem(position));
-    }
-
-    public class VideoInfoAdapter extends ArrayAdapter<VideoInfo> {
-        private LayoutInflater mInflater;
-
-        VideoInfoAdapter(ArrayList<VideoInfo> list) {
-            super(DatabaseActivity.this, R.layout.layout_white, list);
-            mInflater = LayoutInflater.from(DatabaseActivity.this);
-        }
-
-        public View getView(int position, View convertView, ViewGroup parent) {
-            ViewHolder holder;
-            View row = convertView;
-            if (row == null) {
-                row = mInflater.inflate(R.layout.layout_white, parent, false);
-                holder = new ViewHolder();
-                holder.thumbView = (ImageView) row.findViewById(R.id.video_thumb);
-                holder.nameView = (TextView) row.findViewById(R.id.video_name);
-                row.setTag(holder);
-            } else {
-                holder = (ViewHolder) row.getTag();
-            }
-            VideoInfo info = getModel(position);
-            holder.thumbView.setImageBitmap(info.thumbnail);
-            holder.nameView.setText(info.name);
-            return row;
-        }
-
-        class ViewHolder {
-            public ImageView thumbView;
-            public TextView nameView;
-        }
     }
 
 }

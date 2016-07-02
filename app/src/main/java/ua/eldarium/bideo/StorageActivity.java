@@ -17,14 +17,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
-import android.view.LayoutInflater;
+import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -32,32 +28,16 @@ import java.util.List;
 
 public class StorageActivity extends ListActivity {
 
-    public ArrayList<VideoInfo> foundVids;
-    private ContentResolver finder;
-    private Bitmap error_sign;
-    private ProgressBar pbar;
+    private Bitmap errorSign;
+    ArrayList<VideoInfo> foundVids;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_storage);
-        error_sign = BitmapFactory.decodeResource(getResources(), R.drawable.error_sign);
-
-        pbar = (ProgressBar) findViewById(R.id.progbar);
-
-        foundVids = new ArrayList<>();
-        finder = getContentResolver();
-
-        if (isStoragePermissionGranted())
-            new VideoGetter().execute();
-        else {
-            Toast.makeText(this, "no permission", Toast.LENGTH_SHORT).show();
-            foundVids.add(new VideoInfo("No Videos Available", error_sign, null));
-        }
-
-        final VideoInfoAdapter videoAdapter = new VideoInfoAdapter(foundVids);
-        setListAdapter(videoAdapter);
-
+        Log.d("text", "Set content view, exec async now");
+        new VideoGetter().execute();
+        errorSign = BitmapFactory.decodeResource(getResources(), R.drawable.error_sign);
         AdapterView.OnItemClickListener itemListener = new AdapterView.OnItemClickListener() {
             VideoInfo selectedVideo;
 
@@ -84,32 +64,33 @@ public class StorageActivity extends ListActivity {
             }
         };
         AdapterView.OnItemLongClickListener longListener = new AdapterView.OnItemLongClickListener() {
-            AlertDialog.Builder ad;
+            AlertDialog.Builder dialogBuilder;
 
             @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, final int position, long id) {
+            public boolean onItemLongClick(final AdapterView<?> parent, View view, final int position, long id) {
 
                 final VideoInfo selectedInfo = (VideoInfo) parent.getItemAtPosition(position);
-                if (ad == null) {
-                    ad = new AlertDialog.Builder(StorageActivity.this);
-                    ad.setTitle("Remove video?");
-                    ad.setMessage("Do you want to remove this video from list?");
-                    ad.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                if (dialogBuilder == null) {
+                    dialogBuilder = new AlertDialog.Builder(StorageActivity.this);
+                    dialogBuilder.setTitle(R.string.dialog_remove_tite);
+                    dialogBuilder.setMessage(R.string.dialog_remove_message);
+                    dialogBuilder.setPositiveButton(R.string.button_yes, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             foundVids.remove(position);
-                            videoAdapter.remove(selectedInfo);
+                            ((VideoInfoAdapter) getListAdapter()).remove(selectedInfo);
                         }
                     });
-                    ad.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    dialogBuilder.setNegativeButton(R.string.button_no, new DialogInterface
+                            .OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
-
+                            dialog.dismiss();
                         }
                     });
-                    ad.setCancelable(true);
+                    dialogBuilder.setCancelable(true);
                 }
-                ad.show();
+                dialogBuilder.show();
                 return false;
             }
         };
@@ -138,16 +119,29 @@ public class StorageActivity extends ListActivity {
 
     public class VideoGetter extends AsyncTask<Void, Void, Void> {
 
+
         Cursor vCursor;
+        private ContentResolver finder;
+        private ProgressBar pbar;
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+            Log.d("text", "on pre exec async now");
+            pbar = (ProgressBar) findViewById(R.id.progbar);
             pbar.setVisibility(View.VISIBLE);
         }
 
         @Override
         protected Void doInBackground(Void... params) {
+            Log.d("text", "exec async now");
+
+            foundVids = new ArrayList<>();
+            finder = getContentResolver();
+            if (!isStoragePermissionGranted()) {
+                foundVids.add(new VideoInfo(getString(R.string.empty_video), errorSign, null));
+                return null;
+            }
             Uri vidUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
             String[] projection = {MediaStore.Video.VideoColumns.DATA};
             vCursor = finder.query(vidUri, projection, null, null, null);
@@ -161,7 +155,7 @@ public class StorageActivity extends ListActivity {
                 }
             }
             if (foundVids.size() == 0)
-                foundVids.add(new VideoInfo("No Videos Available", error_sign, null));
+                foundVids.add(new VideoInfo("No Videos Available", errorSign, null));
             vCursor.close();
             return null;
         }
@@ -170,43 +164,10 @@ public class StorageActivity extends ListActivity {
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
 
+            VideoInfoAdapter videoAdapter = new VideoInfoAdapter(StorageActivity.this, foundVids);
+            setListAdapter(videoAdapter);
+
             pbar.setVisibility(View.GONE);
-        }
-    }
-
-    private VideoInfo getModel(int position) {
-        return (((VideoInfoAdapter) getListAdapter()).getItem(position));
-    }
-
-    public class VideoInfoAdapter extends ArrayAdapter<VideoInfo> {
-        private LayoutInflater mInflater;
-
-        VideoInfoAdapter(ArrayList<VideoInfo> list) {
-            super(StorageActivity.this, R.layout.layout_white, list);
-            mInflater = LayoutInflater.from(StorageActivity.this);
-        }
-
-        public View getView(int position, View convertView, ViewGroup parent) {
-            ViewHolder holder;
-            View row = convertView;
-            if (row == null) {
-                row = mInflater.inflate(R.layout.layout_white, parent, false);
-                holder = new ViewHolder();
-                holder.thumbView = (ImageView) row.findViewById(R.id.video_thumb);
-                holder.nameView = (TextView) row.findViewById(R.id.video_name);
-                row.setTag(holder);
-            } else {
-                holder = (ViewHolder) row.getTag();
-            }
-            VideoInfo info = getModel(position);
-            holder.thumbView.setImageBitmap(info.thumbnail);
-            holder.nameView.setText(info.name);
-            return row;
-        }
-
-        class ViewHolder {
-            public ImageView thumbView;
-            public TextView nameView;
         }
     }
 

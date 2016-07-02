@@ -8,7 +8,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Bitmap;
 import android.provider.BaseColumns;
-import android.util.Log;
 
 /**
  * Created by Dan on 01.07.2016.
@@ -38,24 +37,24 @@ public class DatabaseWorker {
         mCtx = ctx;
     }
 
-    // открыть подключение
+
     public void open() {
         mDBHelper = new DatabaseHelper(mCtx);
         mDB = mDBHelper.getWritableDatabase();
     }
 
-    // закрыть подключение
+
     public void close() {
         if (mDBHelper != null) mDBHelper.close();
     }
 
-    // получить все данные из таблицы DB_TABLE
+
     public Cursor getAllData() {
         return mDB.query(mDBHelper.getDatabaseName(), null, null, null, null, null, null);
     }
 
-    // добавить запись в DB_TABLE
-    public void addRec(String name, byte[] img, String path) {
+
+    public void addRecord(String name, byte[] img, String path) {
         ContentValues cv = new ContentValues();
         cv.put(VIDEO_NAME_COLUMN, name);
         cv.put(THUMB_COLUMN, img);
@@ -63,7 +62,7 @@ public class DatabaseWorker {
         mDB.insert(DATABASE_TABLE, null, cv);
     }
 
-    public void addRec(String name, Bitmap img, String path) {
+    public void addRecord(String name, Bitmap img, String path) {
         ContentValues cv = new ContentValues();
         cv.put(VIDEO_NAME_COLUMN, name);
         cv.put(THUMB_COLUMN, DbBitmapUtility.getBytes(img));
@@ -72,7 +71,7 @@ public class DatabaseWorker {
     }
 
 
-    public void addRec(VideoInfo video) {
+    public void addRecord(VideoInfo video) {
         ContentValues cv = new ContentValues();
         cv.put(VIDEO_NAME_COLUMN, video.name);
         cv.put(THUMB_COLUMN, DbBitmapUtility.getBytes(video.thumbnail));
@@ -80,8 +79,8 @@ public class DatabaseWorker {
         mDB.insert(DATABASE_TABLE, null, cv);
     }
 
-    // удалить запись из DB_TABLE
-    public void delRec(long id) {
+
+    public void delRecord(long id) {
         mDB.delete(DATABASE_TABLE, DatabaseHelper._ID + " = " + id, null);
     }
 
@@ -113,9 +112,6 @@ public class DatabaseWorker {
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-            // Запишем в журнал
-            Log.w("SQLite", "Обновляемся с версии " + oldVersion + " на версию " + newVersion);
-
             // Удаляем старую таблицу и создаём новую
             db.execSQL("DROP TABLE IF EXISTS " + DATABASE_TABLE);
             // Создаём новую таблицу
