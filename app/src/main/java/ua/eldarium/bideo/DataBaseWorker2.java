@@ -26,7 +26,7 @@ public class DatabaseWorker {
     public static final String THUMB_COLUMN = "thumbnail";
     public static final String PATH_COLUMN = "path";
 
-
+asdfghasdfgh
     private final Context mCtx;
 
 
